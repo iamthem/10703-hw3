@@ -25,7 +25,7 @@ def cmaes(fn, dim, num_iter=10):
   p_keep = 0.10  # Fraction of population to keep
   noise = 0.25  # Noise added to covariance to prevent it from going to 0.
   keep = int(population_size * p_keep) # Number of survivors
-  epsilon = 0.25 * np.eye(dim) 
+  epsilon = noise * np.eye(dim) 
 
   # Initialize the mean and covariance
   mu = np.zeros(dim)
@@ -41,7 +41,7 @@ def cmaes(fn, dim, num_iter=10):
   for _ in range(num_iter):
 
     Omega = multivariate_normal(mu_t, cov_t, allow_singular = True).rvs(population_size)
-    scores = np.zeros(Omega.shape[0])
+    scores = np.zeros(population_size)
 
     for i, param in enumerate(Omega):
         scores[i] = fn(param)
@@ -49,9 +49,7 @@ def cmaes(fn, dim, num_iter=10):
     Omega = Omega[scores.argsort()]
     survivors = Omega[-keep:]
     mu_t = 1/keep * np.sum(survivors, axis = 0)
-    cov_t = np.array(
-                    [np.cov(survivors[i], mu_t) for i in range(keep)]
-                    ).mean(axis=0)
+    cov_t = np.cov(survivors.T) + epsilon
 
     mu_vec.append(mu_t)
     best_sample_vec.append(scores[-1])
@@ -82,9 +80,15 @@ def visualize(mu_vec):
     plt.colorbar()
     mu_vec = np.array(mu_vec)
     plt.plot(mu_vec[:, 0], mu_vec[:, 1], 'b-o')
-    plt.plot([mu_vec[0, 0]], [mu_vec[0, 1]], 'r+', ms=20, label='initial value')
-    plt.plot([mu_vec[-1, 0]], [mu_vec[-1, 1]], 'g+', ms=20, label='final value')
-    plt.plot([65], [49], 'kx', ms=20, label='maximum')
+    init_l = list(np.round(mu_vec[0], 2))
+    init_lab = 'initial value ' + str(init_l)
+    plt.plot([mu_vec[0, 0]], [mu_vec[0, 1]], 'r+', ms=20, label=init_lab)
+    fin_l = list(np.round(mu_vec[-1], 2))
+    fin_lab = 'final value ' + str(fin_l)
+    plt.plot([mu_vec[-1, 0]], [mu_vec[-1, 1]], 'g+', ms=20, label=fin_lab)
+    plt.plot([65], [49], 'kx', ms=20, label='maximum ' + str([65,49]))
+    plt.xlabel("mu_0")
+    plt.ylabel("mu_1")
     plt.legend()
     plt.show()
 
@@ -96,26 +100,59 @@ def visualize(mu_vec):
 def _sigmoid(x):
   return 1 / (1 + np.exp(-x))
 
-def _get_action(s, params):
-  w = params[:4]
-  b = params[4]
+def _get_action(s, w, b):
   p_left = _sigmoid(w @ s + b)
   a = np.random.choice(2, p=[p_left, 1 - p_left])
   return a
 
-def rl_fn(params, env):
-  assert len(params) == 5
-  ## calculate total_rewards
-  pass 
+def rl_fn(params, env, iters = 30):
+
+    assert len(params) == 5
+    rewards =  np.zeros(iters)
+    policy = lambda s: _get_action(s, w, b)
+    w = np.array(params[:4])
+    b = np.array(params[4])
+
+    for i in range(iters):
+        state = env.reset()
+        done = False
+        total_rewards = 0
+
+        while not done:
+            action = policy(state)
+            new_state, reward, done, info = env.step(action) 
+            state = new_state
+            total_rewards += reward
+
+        rewards[i] = total_rewards
+
+    return rewards.mean()
 
 """The cell below applies your CMA-ES implementation to the RL objective you've defined in the cell above."""
+
+def visualize_Cartpole(mu_vec, best_sample_vec, mean_sample_vec):
+    plt.figure(figsize=(6, 4))
+    mean_sample_reward = np.array(mean_sample_vec)
+    best_sample_reward = np.array(best_sample_vec)
+    iters = np.arange(1, 11)
+    lab1 = "Mean Sample Reward" 
+    lab2 = "Best Sample Reward" 
+    plt.plot(iters, mean_sample_reward, label=lab1)
+    plt.plot(iters, best_sample_reward, label=lab2)
+    plt.xlabel("Iteration")
+    plt.ylabel("Average Total Reward (over 30 Trajectories)")
+    plt.hlines(195., 0, 10, linestyles = 'dashed', label = "Reward = 195")
+    plt.legend(loc = "lower right")
+    plt.show()
 
 def cmaes_To_CartPole():
     env = gym.make('CartPole-v0')
     fn_with_env = functools.partial(rl_fn, env=env)
     mu_vec, best_sample_vec, mean_sample_vec = cmaes(fn_with_env, dim=5, num_iter=10)
+    return (mu_vec, best_sample_vec, mean_sample_vec)
+    visualize(mu_vec)
 
 
 if __name__ == '__main__':
-    mu_vec, best_sample_vec, mean_sample_vec = cmaes(test_fn, dim=2, num_iter=100)    
-    print(mu_vec[-1]) 
+    mu_vec, best_sample_vec, mean_sample_vec = cmaes(test_fn, dim=2, num_iter=100)
+    visualize(mu_vec)
