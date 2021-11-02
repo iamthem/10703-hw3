@@ -138,7 +138,8 @@ class Imitation():
 
             acc = correct / (self.expert_T)
 
-        return loss, acc
+        rewards = self.evaluate(self.model, self.num_episodes) 
+        return loss, acc, rewards
 
 
     def evaluate(self, policy, n_episodes=50):
@@ -149,4 +150,3 @@ class Imitation():
             rewards.append(sum(r))
         r_mean = np.mean(rewards)
         return r_mean
-    
