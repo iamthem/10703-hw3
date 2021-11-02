@@ -21,24 +21,26 @@ class FullyConnectedModel(torch.nn.Module):
         super().__init__()
         self.fc1 = torch.nn.Linear(4, 10)
         self.fc2 = torch.nn.Linear(10, 2)
+        torch.nn.init.xavier_normal_(self.fc1.weight)
+        torch.nn.init.xavier_normal_(self.fc2.weight)
 
     def forward(self, x):
-        # WRITE CODE HERE
         x = torch.tanh(self.fc1(x))
         x = self.fc2(x)
         return x
 
 
-def make_model(input_dim=4, output_dim=2):
+def make_model(device, input_dim=4, output_dim=2):
     model = FullyConnectedModel(input_dim, output_dim)
     # We expect the model to have four weight variables (a kernel and bias for
     # both layers)
     assert len([p for p in model.parameters()]) == 4, 'Model should have 4 weights.'
+    model.to(device)
     return model
 
 
-def test_model():
-    model = make_model()
+def test_model(device):
+    model = make_model(device)
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
 

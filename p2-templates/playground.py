@@ -2,28 +2,26 @@
 import model_pytorch
 from importlib import reload
 import imitation
+import model_pytorch
 import gym
 import numpy as np
+import torch
+import utils
+num_episodes = 100
+expert_file = 'expert_torch.pt'
+device = 'cpu'
+batch = 16 
+nS = 4
 env = gym.make('CartPole-v0')
-
-def _sigmoid(x):
-  return 1 / (1 + np.exp(-x))
-
-def _get_action(s, w, b):
-  p_left = _sigmoid(w @ s + b)
-  a = np.random.choice(2, p=[p_left, 1 - p_left])
-  return a
+num_iterations = 30
 
 # %%
+reload(utils)
 reload(imitation)
-w = np.array([-1,-1,-1,-1])
-b = np.array(-1)
-policy = lambda s: _get_action(s, w, b)
-total_rewards =  np.zeros(1000)
-
-for i in range(1000):
-    states, actions, rewards = imitation.generate_episode(env, policy)
-    total_rewards[i] = np.sum(rewards)
-
-np.mean(total_rewards)
-
+reload(model_pytorch)
+im = imitation.Imitation(env, num_episodes, expert_file, device, batch = batch)
+for i in range(num_iterations):
+    loss, acc, reward = im.train(batch_size = batch)
+    print("Loss => ", loss,
+          "\nAccuracy => ", acc,
+          "Reward ==> ", reward)
