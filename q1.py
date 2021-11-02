@@ -120,7 +120,7 @@ def rl_fn(params, env, iters = 30):
 
         while not done:
             action = policy(state)
-            new_state, reward, done, info = env.step(action) 
+            new_state, reward, done, _ = env.step(action) 
             state = new_state
             total_rewards += reward
 
