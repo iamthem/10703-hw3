@@ -40,7 +40,6 @@ def generate_episode(env, policy, device):
 
     while not done:
             
-        assert state_t.is_cuda
         yhat = policy(state_t)
         # We Take best action during evaluation
         action = int(torch.argmax(yhat, dim=1)[0])
