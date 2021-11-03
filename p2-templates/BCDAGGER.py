@@ -42,15 +42,16 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
             # Create the environment.
             env = gym.make('CartPole-v0')
             env.seed(t) # set seed
-            im = Imitation(env, num_episodes, expert_file, device)
+            im = Imitation(env, num_episodes, expert_file, device, mode)
             expert_reward = im.evaluate(im.expert)
-            print('Expert reward: %.2f' % expert_reward)
+            #print('Expert reward: %.2f' % expert_reward)
 
             loss_vec = []
             acc_vec = []
             imitation_reward_vec = []
             for i in range(num_iterations):
-                loss, acc, reward = im.train()
+                loss, acc, reward = im.train(batch_size = 64)
+                print("Step =>", i, "Average Loss =>> ", loss, "Reward ==>", reward)
 
     return reward_data, accuracy_data, loss_data, expert_reward
 
@@ -105,6 +106,7 @@ def main():
                             # (e.g., 10) for debugging, and then try a larger number
                             # (e.g., 100).
 
+    generate_imitation_results(mode, expert_file, device)
     # Q2.1.1, Q2.2.1
     #plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
 
@@ -114,3 +116,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
