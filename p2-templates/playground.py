@@ -33,7 +33,7 @@ for i in range(num_iterations):
     loss, acc, D = im.train(D)
     loss_vec[i] = loss
     #acc_vec[i] = acc
-    #imitation_reward_vec[i] = im.evaluate(im.model)
+    imitation_reward_vec[i] = im.evaluate(im.model)
     print(loss, len(D))
 
 # %%

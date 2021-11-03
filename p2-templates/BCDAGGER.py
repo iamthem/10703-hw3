@@ -44,19 +44,18 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
             env.seed(t) # set seed
             im = Imitation(env, num_episodes, expert_file, device, mode, batch = batch_size)
             expert_reward = im.evaluate(im.expert)
-            print('Expert reward: %.2f' % expert_reward)
+            #print('Expert reward: %.2f' % expert_reward)
 
-            loss_vec = []
-            acc_vec = []
-            imitation_reward_vec = []
+            loss_vec = np.zeros(num_iterations) 
+            #acc_vec = np.zeros(num_iterations) 
+            imitation_reward_vec = np.zeros(num_iterations) 
             D = list() 
-            for _ in range(num_iterations):
-                loss, acc, D = im.train(D)
-                loss_vec.append(loss)
-                acc_vec.append(acc)
-                imitation_reward_vec.append(im.evaluate(im.model))
-
-
+            for i in range(num_iterations):
+                loss, _, D = im.train(D)
+                loss_vec[i] = loss
+                imitation_reward_vec[i] = im.evaluate(im.model)
+                print("Iteration = ", i, "Reward = ", imitation_reward_vec[i], 
+                      "Loss = ", loss)
 
     return reward_data, accuracy_data, loss_data, expert_reward
 
@@ -111,6 +110,7 @@ def main():
                             # (e.g., 10) for debugging, and then try a larger number
                             # (e.g., 100).
 
+    generate_imitation_results(mode, expert_file, device)
     # Q2.1.1, Q2.2.1
     #plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
 
@@ -120,3 +120,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+

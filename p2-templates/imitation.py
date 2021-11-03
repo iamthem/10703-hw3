@@ -1,9 +1,8 @@
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from model_pytorch import make_model, ExpertModel
-from utils import state_ndarray_to_tensor, Q2_Dataset, Yikes
+from utils import state_ndarray_to_tensor, Q2_Dataset 
 
 
 def action_to_one_hot(action, batch):
@@ -11,7 +10,7 @@ def action_to_one_hot(action, batch):
     return torch.clone(action_t).repeat(batch).reshape((batch))
 
 # NOTE Some code borrowed form HW2 
-def generate_episode(env, policy):
+def generate_episode(env, policy, device):
     """Collects one rollout from the policy in an environment. The environment
     should implement the OpenAI Gym interface. A rollout ends when done=True. The
     number of states and actions should be the same, so you should not include
@@ -36,19 +35,20 @@ def generate_episode(env, policy):
     rewards = []
     actions = []
 
-    state_t = state_ndarray_to_tensor(state, batch = 1) 
+    state_t = state_ndarray_to_tensor(state, batch = 1).to(device)
     new_state = None
 
     while not done:
             
+        assert state_t.is_cuda
         yhat = policy(state_t)
         # We Take best action during evaluation
         action = int(torch.argmax(yhat, dim=1)[0])
         new_state_np, reward, done, _ = env.step(action)
         del new_state
-        new_state = state_ndarray_to_tensor(new_state_np, batch = 1)
+        new_state = state_ndarray_to_tensor(new_state_np, batch = 1).to(device)
         states.append(new_state)
-        actions.append(action_to_one_hot(action, batch = 1))
+        actions.append(action_to_one_hot(action, batch = 1).to(device))
         rewards.append(reward)
         state_t = new_state 
 
@@ -63,7 +63,7 @@ class Imitation():
         self.env = env
         
         # Pytorch Only #
-        self.expert = ExpertModel()
+        self.expert = ExpertModel().to(device)
         self.expert.load_state_dict(torch.load(expert_file))
         self.expert.eval()
         self.expert_T = expert_T
@@ -108,9 +108,9 @@ class Imitation():
         for _ in range(self.num_episodes):
 
             if expert: 
-                states, actions, rewards = generate_episode(self.env, self.expert)
+                states, actions, rewards = generate_episode(self.env, self.expert, self.device)
             else: 
-                states, actions, rewards = generate_episode(self.env, self.model)
+                states, actions, rewards = generate_episode(self.env, self.model, self.device)
 
             train_states.extend(states)
             train_actions.extend(actions)
@@ -131,7 +131,7 @@ class Imitation():
 
                 yhat = self.expert(O_s[episode, t])
                 action = int(torch.argmax(yhat, dim=0))
-                Teacher_O_a[episode, t] = action_to_one_hot(action, batch = 1)
+                Teacher_O_a[episode, t] = action_to_one_hot(action, batch = 1).to(self.device)
 
         return O_s, Teacher_O_a 
 
@@ -198,7 +198,7 @@ class Imitation():
         rewards = []
         for _ in range(n_episodes):
             # We evaluate on 1 batch only
-            _, _, r = generate_episode(self.env, policy)
+            _, _, r = generate_episode(self.env, policy, self.device)
             rewards.append(sum(r))
         r_mean = np.mean(rewards)
         return r_mean
