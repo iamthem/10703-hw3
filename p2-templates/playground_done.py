@@ -42,3 +42,19 @@ for episode in range(iters):
 
 acc = correct / (iters * im.expert_T)
 acc
+
+# tensor_trajectory
+# %%
+start = 0
+
+for e in range(num_episodes):
+    if e > 0:
+        start = start + el[e-1] 
+
+    end = start + shortest_episode 
+    print(start, end-1)
+    assert end - start == shortest_episode
+    O_s[e, :] = torch.cat(train_states[ start : end ] , 1).reshape(shortest_episode, nS)
+    O_a[e, :] = torch.cat(train_actions[ start : end ], 0)
+
+print(el, "Shortest Episode = ", shortest_episode)

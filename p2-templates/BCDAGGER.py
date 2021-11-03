@@ -17,7 +17,7 @@ import time
 from imitation import Imitation
 	
 
-def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100):
+def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100, batch_size = 64):
     # Use a small number of training iterations
     # (e.g., 10) for debugging, and then try a larger number
     # (e.g., 100).
@@ -42,15 +42,21 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
             # Create the environment.
             env = gym.make('CartPole-v0')
             env.seed(t) # set seed
-            im = Imitation(env, num_episodes, expert_file, device)
+            im = Imitation(env, num_episodes, expert_file, device, mode, batch = batch_size)
             expert_reward = im.evaluate(im.expert)
             print('Expert reward: %.2f' % expert_reward)
 
             loss_vec = []
             acc_vec = []
             imitation_reward_vec = []
-            for i in range(num_iterations):
-                loss, acc, reward = im.train()
+            D = list() 
+            for _ in range(num_iterations):
+                loss, acc, D = im.train(D)
+                loss_vec.append(loss)
+                acc_vec.append(acc)
+                imitation_reward_vec.append(im.evaluate(im.model))
+
+
 
     return reward_data, accuracy_data, loss_data, expert_reward
 
