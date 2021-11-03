@@ -55,37 +55,37 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
     return reward_data, accuracy_data, loss_data, expert_reward
 
 
-    """### Experiment: Student vs Expert
-    In the next two cells, you will compare the performance of the expert policy
-    to the imitation policies obtained via behavior cloning and DAGGER.
-    """
-    def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100):
-    assert len(keys) == 1
-    reward_data, acc_data, loss_data, expert_reward = \
-        generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
+# """### Experiment: Student vs Expert
+# In the next two cells, you will compare the performance of the expert policy
+# to the imitation policies obtained via behavior cloning and DAGGER.
+# """
+# def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100):
+# assert len(keys) == 1
+# reward_data, acc_data, loss_data, expert_reward = \
+#     generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
 
-    # Plot the results
-    plt.figure(figsize=(12, 3))
-    # WRITE CODE HERE
+# # Plot the results
+# plt.figure(figsize=(12, 3))
+# # WRITE CODE HERE
 
-    # END
-    plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
-    # plt.show()
+# # END
+# plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
+# # plt.show()
 
-"""Plot the reward, loss, and accuracy for each, remembering to label each line."""
-def plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=1, num_iterations=100):
-	s0 = time.time()
-	reward_data, accuracy_data, loss_data, _ = \
-		generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
-	
-	# Plot the results
-	plt.figure(figsize=(12, 4))
-	# WRITE CODE HERE
+# """Plot the reward, loss, and accuracy for each, remembering to label each line."""
+# def plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=1, num_iterations=100):
+# s0 = time.time()
+# reward_data, accuracy_data, loss_data, _ = \
+#     generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
 
-	# END
-	plt.savefig('p1_expert_data_%s.png' % mode, dpi=300)
-	# plt.show()
-	print('time cost', time.time() - s0)
+# # Plot the results
+# plt.figure(figsize=(12, 4))
+# # WRITE CODE HERE
+
+# # END
+# plt.savefig('p1_expert_data_%s.png' % mode, dpi=300)
+# # plt.show()
+# print('time cost', time.time() - s0)
 
 
 def main():
@@ -106,10 +106,10 @@ def main():
                             # (e.g., 100).
 
     # Q2.1.1, Q2.2.1
-    plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
+    #plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
 
-    # Q2.1.2, Q2.2.2
-    plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
+    # # Q2.1.2, Q2.2.2
+    # plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
 
 
 if __name__ == '__main__':

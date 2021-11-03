@@ -1,15 +1,16 @@
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from model_pytorch import make_model, ExpertModel
-from utils import state_ndarray_to_tensor
+from utils import state_ndarray_to_tensor, Q2_Dataset
 
 
-def action_to_one_hot(env, action, batch):
+def action_to_one_hot(action, batch):
     action_t = torch.tensor(action).long()
     return torch.clone(action_t).repeat(batch).reshape((batch))
 
 # NOTE Some code borrowed form HW2 
-def generate_episode(env, policy, batch):
+def generate_episode(env, policy):
     """Collects one rollout from the policy in an environment. The environment
     should implement the OpenAI Gym interface. A rollout ends when done=True. The
     number of states and actions should be the same, so you should not include
@@ -34,7 +35,7 @@ def generate_episode(env, policy, batch):
     rewards = []
     actions = []
 
-    state_t = state_ndarray_to_tensor(state, batch) 
+    state_t = state_ndarray_to_tensor(state, batch = 1) 
     new_state = None
 
     while not done:
@@ -44,9 +45,9 @@ def generate_episode(env, policy, batch):
         action = int(torch.argmax(yhat, dim=1)[0])
         new_state_np, reward, done, _ = env.step(action)
         del new_state
-        new_state = state_ndarray_to_tensor(new_state_np, batch)
+        new_state = state_ndarray_to_tensor(new_state_np, batch = 1)
         states.append(new_state)
-        actions.append(action_to_one_hot(env, action, batch))
+        actions.append(action_to_one_hot(action, batch = 1))
         rewards.append(reward)
         state_t = new_state 
 
@@ -57,7 +58,7 @@ def generate_episode(env, policy, batch):
 
 class Imitation():
     
-    def __init__(self, env, num_episodes, expert_file, device, batch = 4, nS = 4, nA = 2, expert_T = 200):
+    def __init__(self, env, num_episodes, expert_file, device, mode, expert_T = 200):
         self.env = env
         
         # Pytorch Only #
@@ -65,12 +66,12 @@ class Imitation():
         self.expert.load_state_dict(torch.load(expert_file))
         self.expert.eval()
         self.expert_T = expert_T
+        self.mode = mode
         
         self.num_episodes = num_episodes
         
-        self.nS = nS
-        self.nA = nA
-        self.batch = batch
+        self.nS = env.observation_space.shape[0]
+        self.nA = env.action_space.n
         self.device = device
         self.model = make_model(device)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -81,24 +82,25 @@ class Imitation():
         train_actions = []
 
         for _ in range(self.num_episodes):
-            states, y_hats, _ = generate_episode(self.env, self.expert, batch = self.batch)
+            states, y_hats, _ = generate_episode(self.env, self.expert)
             train_states.extend(states)
             train_actions.extend(y_hats)
 
-        O_s = torch.cat(train_states).reshape(self.num_episodes, self.expert_T,
-                                              self.batch, self.nS).to(self.device)
-        O_a = torch.cat(train_actions).reshape(self.num_episodes, self.expert_T,
-                                                 self.batch).to(self.device)
+        O_s = torch.cat(train_states).reshape(self.num_episodes, self.expert_T, self.nS).to(self.device)
+        O_a = torch.cat(train_actions).reshape(self.num_episodes, self.expert_T).to(self.device)
 
         return O_s, O_a
         
-    def generate_dagger_data(self):
-        # WRITE CODE HERE
-        # You should collect states and actions from the student policy
-        # (self.model), and then relabel the actions using the expert policy.
-        # This method does not return anything.
-        # END
-        return
+    def generate_dagger_data(self, O_s, O_a):
+        Teacher_O_a = torch.zeros(O_a.size()).to(self.device)
+
+        for episode in range(self.num_episodes):
+            for t in range(self.expert_T):
+                yhat = self.expert(O_s[episode, t])
+                action = int(torch.argmax(yhat, dim=0))
+                Teacher_O_a[episode, t] = action_to_one_hot(action, batch = 1)
+
+        return Teacher_O_a
         
     def train(self, num_epochs=1, batch_size=64):
         """
@@ -118,25 +120,26 @@ class Imitation():
         for _ in range(num_epochs):
 
             O_s, O_a = self.generate_behavior_cloning_data()
-
-            for episode in range(self.num_episodes):
-                for t in range(self.expert_T):
+            train_set = Q2_Dataset(self.num_episodes * self.expert_T, batch_size, O_s, O_a)
+            train_loader = DataLoader(dataset=train_set) 
                 
-                    state, y_batch = O_s[episode,t], O_a[episode, t]
-                    yhat = self.model(state)
-                    loss = self.criterion(yhat, y_batch)
+            for i, (state_batch, action_batch) in enumerate(train_loader):
+                                        
+                y_hat = self.model(state_batch)
+                loss = self.criterion(y_hat.squeeze(0), action_batch.squeeze(0))
+                
+                # Backward prop.
+                self.optimizer.zero_grad()
+                loss.backward()
 
-                    # Backward prop.
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    # Update model
-                    self.optimizer.step()
-                    
-                    # Only compute correct labels  for final iteration
-                    if episode == self.num_episodes - 1: 
-                        correct += (torch.argmax(yhat[0], dim=0) == y_batch[0]).float().sum()
+                # Update model
+                self.optimizer.step()
 
-            acc = correct / (self.expert_T)
+                # Only compute correct labels  for final iteration
+                # if episode == self.num_episodes - 1: 
+                #     correct += (torch.argmax(yhat[0], dim=0) == y_batch[0]).float().sum()
+
+            # acc = correct / (self.expert_T)
 
         rewards = self.evaluate(self.model, self.num_episodes) 
         return loss, acc, rewards
@@ -146,7 +149,7 @@ class Imitation():
         rewards = []
         for i in range(n_episodes):
             # We evaluate on 1 batch only
-            _, _, r = generate_episode(self.env, policy, batch = 1)
+            _, _, r = generate_episode(self.env, policy)
             rewards.append(sum(r))
         r_mean = np.mean(rewards)
         return r_mean
