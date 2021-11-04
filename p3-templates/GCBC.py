@@ -7,7 +7,7 @@ from numpy.random import randint
 from model_pytorch import ExpertModel, make_model
 
 ### 3.1 Build Goal-Conditioned Task
-class FourRooms:
+class FourRooms(gym.Env):
     def __init__(self, l=5, T=30):
         '''
         FourRooms Environment for pedagogic purposes
@@ -41,11 +41,46 @@ class FourRooms:
         self.action_space = spaces.Discrete(4)
 
         # you may use self.act_map in search algorithm 
-        self.act_map = {}
-        self.act_map[(1, 0)] = 0
-        self.act_map[(0, 1)] = 1
-        self.act_map[(-1, 0)] = 2
-        self.act_map[(0, -1)] = 3
+        self.act_mapI = {}
+        self.act_mapI[(1, 0)] = 0
+        self.act_mapI[(0, 1)] = 1
+        self.act_mapI[(-1, 0)] = 2
+        self.act_mapI[(0, -1)] = 3
+
+        self.act_map = dict() 
+        self.act_map[0] = np.array([1, 0])
+        self.act_map[1] = np.array([0, 1])
+        self.act_map[2] = np.array([-1, 0])
+        self.act_map[3] = np.array([0, -1])
+
+    def step(self, a):
+        assert self.action_space.contains(a)
+        done = False
+        info = dict() 
+        reward = np.float32(0)
+
+        action_vec = self.act_map[a] 
+        new_state = action_vec + self.s  
+
+        print("State =>", self.s, "Action => ", action_vec, "New State => ", new_state)
+
+        #TODO Currently not wrapping around 
+        if ( (new_state[0] < self.total_l and new_state[0] > -1) and        # Check we are in bounds 
+             (new_state[1] < self.total_l and new_state[1] > -1) and 
+              self.map[new_state[0], new_state[1]]):
+            self.s = new_state 
+        
+        print("State_Prime =>", self.s)
+
+        self.t += 1
+
+        if (self.s == self.g).all():
+            reward = np.float32(1)
+
+        done = bool( reward > 0 or
+                    self.t > self.T ) 
+
+        return self._obs(), reward, done, info
 
     def render_map(self):
         plt.imshow(self.map)
@@ -67,7 +102,7 @@ class FourRooms:
             g = [randint(self.total_l), randint(self.total_l)]
             if self.map[g[0], g[1]] and (s[0] != g[0] or s[1] != g[1]):
                 break
-        return s, g
+        return np.array(s, dtype = np.int_), np.array(g, dtype = np.int_)
 
     def reset(self, s=None, g=None):
         '''
@@ -89,22 +124,6 @@ class FourRooms:
 
         return self._obs()
 
-    def step(self, a):
-        '''
-        a: action, a scalar
-        return obs, reward, done, info
-        - done: whether the state has reached the goal
-        - info: succ if the state has reached the goal, fail otherwise 
-        '''
-        assert self.action_space.contains(a)
-        done = False
-        info = () 
-
-        # WRITE CODE HERE
-        # END
-
-        return self._obs(), 0.0, done, info
-
     def _obs(self):
         return np.concatenate([self.s, self.g])
 
@@ -118,25 +137,26 @@ def plot_traj(env, ax, traj, goal=None):
         traj_map[goal[0], goal[1]] = 3 # goal
     ax.imshow(traj_map)
     ax.set_xlabel('y')
-    ax.set_label('x')
+    ax.set_ylabel('x')
 
 ### A uniformly random policy's trajectory
 def test_step(env, l):
-    s = np.array([1, 1])
-    g = np.array([2*l+1, 2*l+1])
+    s = np.array([1, 1], dtype = np.int_)
+    g = np.array([2*l+1, 2*l+1], dtype = np.int_)
     s = env.reset(s, g)
     done = False
     traj = [s]
     while not done:
-        s, _, done, _ = env.step(env.action_space.sample())
+        a = env.action_space.sample()
+        s, _, done, _ = env.step(a)
         traj.append(s)
     traj = np.array(traj)
 
     ax = plt.subplot()
     plot_traj(env, ax, traj, g)
-    plt.savefig('p2_random_traj.png', 
+    plt.savefig('../p3-1-1.png', 
         bbox_inches='tight', pad_inches=0.1, dpi=300)
-    plt.show()
+    #plt.show()
 
 # def shortest_path_expert(env):
 # from queue import Queue

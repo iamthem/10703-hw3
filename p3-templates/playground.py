@@ -13,6 +13,4 @@ reload(GCBC)
 # build env
 l, T = 5, 30
 env = GCBC.FourRooms(l, T)
-### Visualize the map
-env.render_map()
-
+GCBC.test_step(env,l)
