@@ -5,8 +5,8 @@ from model_pytorch import make_model, ExpertModel
 from utils import state_ndarray_to_tensor, Q2_Dataset 
 
 
-def action_to_one_hot(action, batch):
-    action_t = torch.tensor(action).long()
+def action_to_one_hot(action, batch, device):
+    action_t = torch.tensor(action, device = device).long()
     return torch.clone(action_t).repeat(batch).reshape((batch))
 
 # NOTE Some code borrowed form HW2 
@@ -47,7 +47,7 @@ def generate_episode(env, policy, device):
         del new_state
         new_state = state_ndarray_to_tensor(new_state_np, batch = 1).to(device)
         states.append(new_state)
-        actions.append(action_to_one_hot(action, batch = 1).to(device))
+        actions.append(action_to_one_hot(action, 1, device))
         rewards.append(reward)
         state_t = new_state 
 
@@ -84,8 +84,8 @@ class Imitation():
     def tensor_trajectory(self, train_states, train_actions, episode_lens):
         shortest_episode = int(np.min(np.array(episode_lens)))
 
-        O_s = torch.zeros((self.num_episodes, shortest_episode, self.nS)).float().to(self.device)
-        O_a = torch.zeros((self.num_episodes, shortest_episode)).long().to(self.device)
+        O_s = torch.zeros((self.num_episodes, shortest_episode, self.nS), device = self.device).float()
+        O_a = torch.zeros((self.num_episodes, shortest_episode), device = self.device).long()
 
         start = 0
         for e in range(self.num_episodes):
@@ -129,7 +129,7 @@ class Imitation():
 
                 yhat = self.expert(O_s[episode, t])
                 action = int(torch.argmax(yhat, dim=0))
-                Teacher_O_a[episode, t] = action_to_one_hot(action, batch = 1).to(self.device)
+                Teacher_O_a[episode, t] = action_to_one_hot(action, 1, self.device)
 
         return O_s, Teacher_O_a 
 
@@ -162,14 +162,14 @@ class Imitation():
 
             if self.mode == 'dagger':
                 for episode in range(O_a[0].shape[0]):
-                    state_batch = O_s[0, episode]
-                    action_batch = O_a[0, episode]
+                    state_batch = O_s[0, episode].to(self.device)
+                    action_batch = O_a[0, episode].to(self.device)
                     self.step(state_batch, action_batch)
             else:
                 for episode in range(self.num_episodes):
                     for t in range(self.expert_T):
-                        state_batch = O_s[0, episode, t]
-                        action_batch = O_a[0, episode, t]
+                        state_batch = O_s[0, episode, t].to(self.device)
+                        action_batch = O_a[0, episode, t].to(self.device)
                         self.step(state_batch, action_batch)
     
     def train(self, D = list()):
@@ -186,8 +186,8 @@ class Imitation():
         self.total_loss = 0
         self.acc_total = 0
         self.training_iters = 0
-        train_set = Q2_Dataset(self.num_episodes, self.batch, D, self.nS, self.device, self.mode, self.expert_T) 
-        train_loader = DataLoader(dataset=train_set) 
+        train_set = Q2_Dataset(self.num_episodes, self.batch, D, self.nS, self.mode, self.expert_T) 
+        train_loader = DataLoader(dataset=train_set, num_workers = 4 * 16) 
 
         if self.mode == 'behavior cloning':
             O_s, O_a = self.generate_behavior_cloning_data()

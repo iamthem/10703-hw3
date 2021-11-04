@@ -6,13 +6,13 @@ def state_ndarray_to_tensor(state_array, batch):
 
 
 class Q2_Dataset(Dataset):
-    def __init__(self, num_episodes, batch, D, nS, device, mode, expert_T):
+    def __init__(self, num_episodes, batch, D, nS, mode, expert_T):
         self.num_episodes = num_episodes 
         self.batch = batch
         self.D = D
         self.d = 0
         self.nS = nS
-        self.device = device
+        self.device = 'cpu' 
         self.mode = mode
         self.expert_T = expert_T
 
@@ -32,8 +32,8 @@ class Q2_Dataset(Dataset):
             else:
                 batch = self.batch
 
-            O_s = torch.zeros((self.num_episodes, batch, self.nS)).float().to(self.device)
-            O_a = torch.zeros((self.num_episodes, batch)).long().to(self.device)
+            O_s = torch.zeros((self.num_episodes, batch, self.nS), device = self.device).float()
+            O_a = torch.zeros((self.num_episodes, batch), device = self.device).long()
 
             for episode in range(self.num_episodes):
                 # Sample episodes in random order 
@@ -47,8 +47,8 @@ class Q2_Dataset(Dataset):
                 O_a[episode] = actions[episode, indices]
 
         else: 
-            O_s = torch.zeros((self.num_episodes, self.expert_T, self.batch, self.nS)).float().to(self.device)
-            O_a = torch.zeros((self.num_episodes, self.expert_T, self.batch)).long().to(self.device)
+            O_s = torch.zeros((self.num_episodes, self.expert_T, self.batch, self.nS), device = self.device).float()
+            O_a = torch.zeros((self.num_episodes, self.expert_T, self.batch), device = self.device).long()
 
             for episode in range(self.num_episodes):
                 for t in range(self.expert_T):

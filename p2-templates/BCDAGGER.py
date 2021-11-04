@@ -17,7 +17,7 @@ from scipy.ndimage.filters import uniform_filter1d
 from imitation import Imitation
 	
 
-def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100, batch_size = 64):
+def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100, batch_size = 4):
     # Use a small number of training iterations
     # (e.g., 10) for debugging, and then try a larger number
     # (e.g., 100).
@@ -124,9 +124,9 @@ def main():
     #mode = 'dagger'
 
     # Change the list of num_episodes below for testing and different tasks
-    keys = [100] # [1, 10, 50, 100]
-    num_seeds = 1 # 3
-    num_iterations = 100    # Number of training iterations. Use a small number
+    keys = [25]         # [1, 10, 50, 100]
+    num_seeds = 1       # 3
+    num_iterations = 20    # Number of training iterations. Use a small number
                             # (e.g., 10) for debugging, and then try a larger number
                             # (e.g., 100).
 
