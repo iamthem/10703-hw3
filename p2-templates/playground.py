@@ -13,7 +13,7 @@ import utils
 num_episodes = 10 
 expert_file = 'expert_torch.pt'
 device = 'cpu'
-batch = 4   
+batch = 2   
 nS = 4
 nA = 2
 env = gym.make('CartPole-v0')

@@ -81,7 +81,7 @@ def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, n
 
     # Plot the results
     plt.figure(figsize=(12, 3))
-    fig, axarr = plt.subplots(3,1)
+    fig, axarr = plt.subplots(1,3)
     
     axarr[0].plot(x, reward_arr)
     axarr[0].plot(x, expert_reward_array, linestyle = 'dashed', label = 'Expert Reward')

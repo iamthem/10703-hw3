@@ -9,5 +9,6 @@ F21_hw3_submission.xdv
 .DS_Store
 tags
 **log
-**png
+**/p2-templates/**png
+**/p3-templates/**png
 **/__pycache__
