@@ -85,13 +85,13 @@ def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, n
     
     axarr[0].plot(x, reward_arr)
     axarr[0].plot(x, expert_reward_array, linestyle = 'dashed', label = 'Expert Reward')
+    axarr[0].legend()
     axarr[1].plot(x, acc_arr)
     axarr[2].plot(x, loss_arr)
     plt.setp(axarr[0], ylabel='Reward')
     plt.setp(axarr[1], ylabel='Accuracy')
     plt.setp(axarr[2], ylabel='Loss')
     plt.xlabel("Iterations")
-    plt.legend()
 
     # END
     plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
@@ -120,8 +120,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Switch mode
-    mode = 'behavior cloning'
-    #mode = 'dagger'
+    #mode = 'behavior cloning'
+    mode = 'dagger'
 
     # Change the list of num_episodes below for testing and different tasks
     keys = [100] # [1, 10, 50, 100]
