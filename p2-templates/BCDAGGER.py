@@ -15,6 +15,7 @@ import random
 from scipy.ndimage.filters import uniform_filter1d
 
 from imitation import Imitation
+from tqdm import tqdm
 	
 
 def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100, batch_size = 64):
@@ -42,7 +43,7 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
             # Create the environment.
             env = gym.make('CartPole-v0')
             env.seed(t) # set seed
-            im = Imitation(env, num_episodes, expert_file, device, mode, batch = batch_size)
+            im = Imitation(env, num_episodes, expert_file, device, mode, batch = batch_size, expert_T=200, minibatch=8)
             expert_reward = im.evaluate(im.expert)
 
             loss_vec = np.zeros(num_iterations) 
@@ -50,7 +51,7 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
             imitation_reward_vec = np.zeros(num_iterations) 
             D = list() 
 
-            for i in range(num_iterations):
+            for i in tqdm(range(num_iterations)):
                 loss, acc, D = im.train(D)
                 loss_vec[i] = loss
                 imitation_reward_vec[i] = im.evaluate(im.model)
@@ -81,7 +82,7 @@ def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, n
 
     # Plot the results
     plt.figure(figsize=(12, 3))
-    fig, axarr = plt.subplots(1,3)
+    fig, axarr = plt.subplots(3,1)
     
     axarr[0].plot(x, reward_arr)
     axarr[0].plot(x, expert_reward_array, linestyle = 'dashed', label = 'Expert Reward')
@@ -94,7 +95,7 @@ def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, n
     plt.xlabel("Iterations")
 
     # END
-    plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
+    plt.savefig('q2-2-1.png', dpi=300)
     #plt.show()
 
 # """Plot the reward, loss, and accuracy for each, remembering to label each line."""
