@@ -13,7 +13,7 @@ import utils
 num_episodes = 10 
 expert_file = 'expert_torch.pt'
 device = 'cpu'
-batch = 4   
+batch = 2   
 nS = 4
 nA = 2
 env = gym.make('CartPole-v0')
@@ -26,7 +26,7 @@ reload(BCDAGGER)
 reload(imitation)
 reload(model_pytorch)
 im = imitation.Imitation(env, num_episodes, expert_file, device, mode, batch)
-keys = [1]
+keys = [10]
 num_seeds = 1
 
 # %%
