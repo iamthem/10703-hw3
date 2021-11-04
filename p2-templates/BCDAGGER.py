@@ -94,7 +94,7 @@ def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, n
     plt.xlabel("Iterations")
 
     # END
-    plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
+    plt.savefig('play.png', dpi=300)
     #plt.show()
 
 # """Plot the reward, loss, and accuracy for each, remembering to label each line."""
@@ -120,8 +120,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Switch mode
-    #mode = 'behavior cloning'
-    mode = 'dagger'
+    mode = 'behavior cloning'
+    #mode = 'dagger'
 
     # Change the list of num_episodes below for testing and different tasks
     keys = [100] # [1, 10, 50, 100]

@@ -10,15 +10,15 @@ import numpy as np
 import torch
 import BCDAGGER
 import utils
-num_episodes = 10 
+num_episodes = 20 
 expert_file = 'expert_torch.pt'
 device = 'cpu'
-batch = 4   
+batch = 2   
 nS = 4
 nA = 2
 env = gym.make('CartPole-v0')
-num_iterations = 5 
-mode = 'dagger'
+num_iterations = 10 
+mode = 'behavior cloning'
 expert_T = 200
 D = list() 
 reload(utils)
@@ -26,7 +26,7 @@ reload(BCDAGGER)
 reload(imitation)
 reload(model_pytorch)
 im = imitation.Imitation(env, num_episodes, expert_file, device, mode, batch)
-keys = [1]
+keys = [num_episodes]
 num_seeds = 1
 
 # %%

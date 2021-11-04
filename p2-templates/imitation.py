@@ -116,7 +116,6 @@ class Imitation():
             episode_lens.append(len(rewards))
         
         return self.tensor_trajectory(train_states, train_actions, episode_lens)
-        
 
     def generate_dagger_data(self):
         O_s, O_a = self.generate_behavior_cloning_data(expert=False)
@@ -136,10 +135,14 @@ class Imitation():
 
     def step(self, state_batch, action_batch):
 
-        # Shuffle steps of trajectory 
-        indices = torch.randperm(state_batch.shape[0])[:self.batch]
-        y_hat = self.model(state_batch[indices])
-        loss = self.criterion(y_hat.squeeze(0), action_batch[indices].squeeze(0))
+        if self.mode == 'dagger':
+            # Shuffle steps of trajectory 
+            indices = torch.randperm(state_batch.shape[0])[:self.batch]
+            state_batch = state_batch[indices]
+            action_batch = action_batch[indices]
+
+        y_hat = self.model(state_batch)
+        loss = self.criterion(y_hat.squeeze(0), action_batch.squeeze(0))
         
         # Backward prop.
         self.optimizer.zero_grad()
@@ -156,10 +159,18 @@ class Imitation():
 
     def Learn(self, train_loader):
         for _, (O_s, O_a) in enumerate(train_loader):
-            for episode in range(O_a[0].shape[0]):
-                state_batch = O_s[0, episode]
-                action_batch = O_a[0, episode]
-                self.step(state_batch, action_batch)
+
+            if self.mode == 'dagger':
+                for episode in range(O_a[0].shape[0]):
+                    state_batch = O_s[0, episode]
+                    action_batch = O_a[0, episode]
+                    self.step(state_batch, action_batch)
+            else:
+                for episode in range(self.num_episodes):
+                    for t in range(self.expert_T):
+                        state_batch = O_s[0, episode, t]
+                        action_batch = O_a[0, episode, t]
+                        self.step(state_batch, action_batch)
     
     def train(self, D = list()):
         """
@@ -175,7 +186,7 @@ class Imitation():
         self.total_loss = 0
         self.acc_total = 0
         self.training_iters = 0
-        train_set = Q2_Dataset(self.num_episodes, self.batch, D, self.nS, self.device) 
+        train_set = Q2_Dataset(self.num_episodes, self.batch, D, self.nS, self.device, self.mode, self.expert_T) 
         train_loader = DataLoader(dataset=train_set) 
 
         if self.mode == 'behavior cloning':
