@@ -13,11 +13,11 @@ import utils
 num_episodes = 10 
 expert_file = 'expert_torch.pt'
 device = 'cpu'
-batch = 8   
+batch = 4   
 nS = 4
 nA = 2
 env = gym.make('CartPole-v0')
-num_iterations = 10
+num_iterations = 5 
 mode = 'dagger'
 expert_T = 200
 D = list() 
@@ -28,6 +28,10 @@ reload(model_pytorch)
 im = imitation.Imitation(env, num_episodes, expert_file, device, mode, batch)
 keys = [1]
 num_seeds = 1
+
+# %%
+BCDAGGER.plot_student_vs_expert(mode, expert_file, device, keys, num_seeds, num_iterations)
+
 
 # %%
 loss_vec = np.zeros(num_iterations) 

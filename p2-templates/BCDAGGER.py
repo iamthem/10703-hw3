@@ -44,7 +44,6 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
             env.seed(t) # set seed
             im = Imitation(env, num_episodes, expert_file, device, mode, batch = batch_size)
             expert_reward = im.evaluate(im.expert)
-            #print('Expert reward: %.2f' % expert_reward)
 
             loss_vec = np.zeros(num_iterations) 
             acc_vec = np.zeros(num_iterations) 
@@ -73,13 +72,30 @@ def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, n
     reward_data, acc_data, loss_data, expert_reward = \
     generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
 
+    for key in keys:
+        reward_arr = np.array(reward_data[key][0])
+        acc_arr = np.array(acc_data[key][0])
+        loss_arr = np.array(loss_data[key][0])
+    x = np.arange(1, num_iterations+1)
+    expert_reward_array = np.array([expert_reward] * num_iterations)
+
     # Plot the results
     plt.figure(figsize=(12, 3))
-    # WRITE CODE HERE
+    fig, axarr = plt.subplots(3,1)
+    
+    axarr[0].plot(x, reward_arr)
+    axarr[0].plot(x, expert_reward_array, linestyle = 'dashed', label = 'Expert Reward')
+    axarr[1].plot(x, acc_arr)
+    axarr[2].plot(x, loss_arr)
+    plt.setp(axarr[0], ylabel='Reward')
+    plt.setp(axarr[1], ylabel='Accuracy')
+    plt.setp(axarr[2], ylabel='Loss')
+    plt.xlabel("Iterations")
+    plt.legend()
 
     # END
     plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
-    # plt.show()
+    #plt.show()
 
 # """Plot the reward, loss, and accuracy for each, remembering to label each line."""
 # def plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=1, num_iterations=100):
@@ -104,13 +120,13 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Switch mode
-    #mode = 'behavior cloning'
-    mode = 'dagger'
+    mode = 'behavior cloning'
+    #mode = 'dagger'
 
     # Change the list of num_episodes below for testing and different tasks
-    keys = [1] # [1, 10, 50, 100]
-    num_seeds = 3 # 3
-    num_iterations = 10    # Number of training iterations. Use a small number
+    keys = [100] # [1, 10, 50, 100]
+    num_seeds = 1 # 3
+    num_iterations = 100    # Number of training iterations. Use a small number
                             # (e.g., 10) for debugging, and then try a larger number
                             # (e.g., 100).
 
