@@ -10,10 +10,10 @@ import numpy as np
 import torch
 import BCDAGGER
 import utils
-num_episodes = 10 
+num_episodes = 15 
 expert_file = 'expert_torch.pt'
 device = 'cpu'
-batch = 2   
+batch = 8   
 nS = 4
 nA = 2
 env = gym.make('CartPole-v0')
@@ -25,8 +25,9 @@ reload(utils)
 reload(BCDAGGER)
 reload(imitation)
 reload(model_pytorch)
-im = imitation.Imitation(env, num_episodes, expert_file, device, mode, batch)
-keys = [10]
+minibatch = 2
+im = imitation.Imitation(env, num_episodes, expert_file, device, mode, batch, 200, minibatch)
+keys = [num_episodes]
 num_seeds = 1
 
 # %%
@@ -43,7 +44,7 @@ for i in range(num_iterations):
     loss_vec[i] = loss
     acc_vec[i] = acc
     imitation_reward_vec[i] = im.evaluate(im.model)
-    print(acc)
+    print(loss)
 
 # %%
 train_set = utils.Q2_Dataset(num_episodes, batch, D, nS, device) 
