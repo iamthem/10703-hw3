@@ -8,8 +8,9 @@ import model_pytorch
 import gym
 import numpy as np
 import torch
+import BCDAGGER
 import utils
-num_episodes = 3 
+num_episodes = 10 
 expert_file = 'expert_torch.pt'
 device = 'cpu'
 batch = 8   
@@ -17,28 +18,28 @@ nS = 4
 nA = 2
 env = gym.make('CartPole-v0')
 num_iterations = 10
-mode = 'behavior cloning'
+mode = 'dagger'
 expert_T = 200
 D = list() 
 reload(utils)
+reload(BCDAGGER)
 reload(imitation)
 reload(model_pytorch)
 im = imitation.Imitation(env, num_episodes, expert_file, device, mode, batch)
+keys = [1]
+num_seeds = 1
 
 # %%
 loss_vec = np.zeros(num_iterations) 
 acc_vec = np.zeros(num_iterations) 
 imitation_reward_vec = np.zeros(num_iterations) 
+
 for i in range(num_iterations):
     loss, acc, D = im.train(D)
     loss_vec[i] = loss
-    #acc_vec[i] = acc
+    acc_vec[i] = acc
     imitation_reward_vec[i] = im.evaluate(im.model)
-    print(loss, len(D))
-
-# %%
-print("Loss Moving Average = ", uniform_filter1d(loss_vec, size=num_iterations))
-print("Rewards Moving Average = ", uniform_filter1d(loss_vec, size=num_iterations))
+    print(acc)
 
 # %%
 train_set = utils.Q2_Dataset(num_episodes, batch, D, nS, device) 
@@ -48,9 +49,10 @@ D.append((O_s_og, Teacher_O_a))
 O_s, O_a = next(iter(train_loader))
 
 # %%
-for episode in range(O_a[0].shape[0]):
-    for t in range(O_a[0].shape[1]):
-        print(O_s[0, episode, t].shape , O_a[0, episode, t].shape) 
+state_batch = O_s[0,0]
+action_batch = O_a[0,0]
+indices = torch.randperm(state_batch.shape[0])[:batch]
+y_hat = im.model(state_batch[indices])
 
 # %%
 train_states = []

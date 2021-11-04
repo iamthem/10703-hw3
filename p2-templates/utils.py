@@ -28,21 +28,19 @@ class Q2_Dataset(Dataset):
         else:
             batch = self.batch
 
-        O_s = torch.zeros((self.num_episodes, states.shape[1], batch, self.nS)).float().to(self.device)
-        O_a = torch.zeros((self.num_episodes, states.shape[1], batch)).long().to(self.device)
+        O_s = torch.zeros((self.num_episodes, batch, self.nS)).float().to(self.device)
+        O_a = torch.zeros((self.num_episodes, batch)).long().to(self.device)
 
         for episode in range(self.num_episodes):
-            for t in range(states.shape[1]):
+            # Sample episodes in random order 
+            indices = torch.randperm(states.shape[1])[:self.batch]
 
-                indices = torch.randperm(states.shape[1])[:self.batch]
+            if self.batch > states.shape[1]:
+                indices = indices.repeat(rep)
 
-                if self.batch > states.shape[1]:
-                    indices = indices.repeat(rep)
-
-                assert(O_s[episode, t].shape == states[episode, indices].shape)
-
-                O_s[episode, t] = states[episode, indices]
-                O_a[episode, t] = actions[episode, indices]
+            assert(O_s[episode].shape == states[episode, indices].shape)
+            O_s[episode] = states[episode, indices]
+            O_a[episode] = actions[episode, indices]
 
         self.d += 1
         return O_s, O_a 

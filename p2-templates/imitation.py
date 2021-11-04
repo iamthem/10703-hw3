@@ -135,8 +135,11 @@ class Imitation():
         return O_s, Teacher_O_a 
 
     def step(self, state_batch, action_batch):
-        y_hat = self.model(state_batch)
-        loss = self.criterion(y_hat.squeeze(0), action_batch.squeeze(0))
+
+        # Shuffle steps of trajectory 
+        indices = torch.randperm(state_batch.shape[0])[:self.batch]
+        y_hat = self.model(state_batch[indices])
+        loss = self.criterion(y_hat.squeeze(0), action_batch[indices].squeeze(0))
         
         # Backward prop.
         self.optimizer.zero_grad()
@@ -147,18 +150,16 @@ class Imitation():
 
         # Add to loss, acc 
         self.total_loss += loss
-        #TODO update acc_totals
-        self.acc_total += 0.5
+        self.acc_total += float(torch.sum(action_batch == y_hat.argmax(dim=1)) / action_batch.shape[0])
         self.training_iters += 1
 
 
     def Learn(self, train_loader):
         for _, (O_s, O_a) in enumerate(train_loader):
             for episode in range(O_a[0].shape[0]):
-                for t in range(O_a[0].shape[1]):
-                    state_batch = O_s[0, episode, t]
-                    action_batch = O_a[0, episode, t]
-                    self.step(state_batch, action_batch)
+                state_batch = O_s[0, episode]
+                action_batch = O_a[0, episode]
+                self.step(state_batch, action_batch)
     
     def train(self, D = list()):
         """

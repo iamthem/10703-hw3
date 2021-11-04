@@ -12,7 +12,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-import time
+from scipy.ndimage.filters import uniform_filter1d
 
 from imitation import Imitation
 	
@@ -47,16 +47,20 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
             #print('Expert reward: %.2f' % expert_reward)
 
             loss_vec = np.zeros(num_iterations) 
-            #acc_vec = np.zeros(num_iterations) 
+            acc_vec = np.zeros(num_iterations) 
             imitation_reward_vec = np.zeros(num_iterations) 
             D = list() 
+
             for i in range(num_iterations):
-                loss, _, D = im.train(D)
+                loss, acc, D = im.train(D)
                 loss_vec[i] = loss
                 imitation_reward_vec[i] = im.evaluate(im.model)
-                print("Iteration = ", i, "Reward = ", imitation_reward_vec[i], 
-                      "Loss = ", loss)
+                acc_vec[i] = acc
 
+            reward_data[num_episodes].append(uniform_filter1d(imitation_reward_vec, size=num_iterations))
+            accuracy_data[num_episodes].append(uniform_filter1d(acc_vec, size=num_iterations)) 
+            loss_data[num_episodes].append(uniform_filter1d(loss_vec, size=num_iterations))
+        
     return reward_data, accuracy_data, loss_data, expert_reward
 
 
@@ -64,18 +68,18 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
 # In the next two cells, you will compare the performance of the expert policy
 # to the imitation policies obtained via behavior cloning and DAGGER.
 # """
-# def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100):
-# assert len(keys) == 1
-# reward_data, acc_data, loss_data, expert_reward = \
-#     generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
+def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, num_iterations=100):
+    assert len(keys) == 1
+    reward_data, acc_data, loss_data, expert_reward = \
+    generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
 
-# # Plot the results
-# plt.figure(figsize=(12, 3))
-# # WRITE CODE HERE
+    # Plot the results
+    plt.figure(figsize=(12, 3))
+    # WRITE CODE HERE
 
-# # END
-# plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
-# # plt.show()
+    # END
+    plt.savefig('p2_student_vs_expert_%s.png' % mode, dpi=300)
+    # plt.show()
 
 # """Plot the reward, loss, and accuracy for each, remembering to label each line."""
 # def plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=1, num_iterations=100):
@@ -100,19 +104,18 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Switch mode
-    mode = 'behavior cloning'
-    # mode = 'dagger'
+    #mode = 'behavior cloning'
+    mode = 'dagger'
 
     # Change the list of num_episodes below for testing and different tasks
-    keys = [100] # [1, 10, 50, 100]
+    keys = [1] # [1, 10, 50, 100]
     num_seeds = 3 # 3
-    num_iterations = 100    # Number of training iterations. Use a small number
+    num_iterations = 10    # Number of training iterations. Use a small number
                             # (e.g., 10) for debugging, and then try a larger number
                             # (e.g., 100).
 
-    generate_imitation_results(mode, expert_file, device)
     # Q2.1.1, Q2.2.1
-    #plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
+    plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
 
     # # Q2.1.2, Q2.2.2
     # plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
