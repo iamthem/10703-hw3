@@ -35,6 +35,7 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
     loss_data = OrderedDict({key: [] for key in keys})
     expert_reward = None 
 
+
     for num_episodes in keys:
         for t in range(num_seeds):
             print('*' * 50)
@@ -57,6 +58,7 @@ def generate_imitation_results(mode, expert_file, device, keys=[100], num_seeds=
                 imitation_reward_vec[i] = im.evaluate(im.model)
                 acc_vec[i] = acc
 
+            print(reward_data[num_episodes])
             reward_data[num_episodes].append(uniform_filter1d(imitation_reward_vec, size=num_iterations))
             accuracy_data[num_episodes].append(uniform_filter1d(acc_vec, size=num_iterations)) 
             loss_data[num_episodes].append(uniform_filter1d(loss_vec, size=num_iterations))
@@ -99,19 +101,31 @@ def plot_student_vs_expert(mode, expert_file, device, keys=[100], num_seeds=1, n
     #plt.show()
 
 # """Plot the reward, loss, and accuracy for each, remembering to label each line."""
-# def plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=1, num_iterations=100):
-# s0 = time.time()
-# reward_data, accuracy_data, loss_data, _ = \
-#     generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
+def plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=1, num_iterations=100):
+    reward_data, accuracy_data, loss_data, _ = \
+        generate_imitation_results(mode, expert_file, device, keys, num_seeds, num_iterations)
 
-# # Plot the results
-# plt.figure(figsize=(12, 4))
-# # WRITE CODE HERE
+    x = np.arange(1, num_iterations+1)
 
-# # END
-# plt.savefig('p1_expert_data_%s.png' % mode, dpi=300)
-# # plt.show()
-# print('time cost', time.time() - s0)
+    for num_episodes in keys:
+
+        reward_seeds = np.concatenate(reward_data[num_episodes]).reshape(num_seeds, num_iterations)
+        accuracy_seeds = np.concatenate(accuracy_data[num_episodes]).reshape(num_seeds, num_iterations)
+        loss_seeds = np.concatenate(loss_data[num_episodes]).reshape(num_seeds, num_iterations)
+
+        plt.figure(figsize=(12, 3))
+        fig, axarr = plt.subplots(3,1)
+        title = "Number of episodes (i.e key) = " + str(num_episodes) 
+        axarr[0].plot(x, np.mean(reward_seeds, axis=0))
+        axarr[1].plot(x, np.mean(accuracy_seeds, axis=0))
+        axarr[2].plot(x, np.mean(loss_seeds, axis=0))
+        plt.setp(axarr[0], ylabel='Reward', title = title)
+        plt.setp(axarr[1], ylabel='Accuracy')
+        plt.setp(axarr[2], ylabel='Loss')
+        plt.xlabel("Iterations")
+
+        # END
+        plt.savefig('q2-2-2-%d.png' % num_episodes, dpi=300)
 
 
 def main():
@@ -125,17 +139,17 @@ def main():
     mode = 'dagger'
 
     # Change the list of num_episodes below for testing and different tasks
-    keys = [100] # [1, 10, 50, 100]
-    num_seeds = 1 # 3
-    num_iterations = 100    # Number of training iterations. Use a small number
+    keys = [1, 10] # [1, 10, 50, 100]
+    num_seeds = 2 # 3
+    num_iterations = 10    # Number of training iterations. Use a small number
                             # (e.g., 10) for debugging, and then try a larger number
                             # (e.g., 100).
 
-    # Q2.1.1, Q2.2.1
-    plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
+
+    #plot_student_vs_expert(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
 
     # # Q2.1.2, Q2.2.2
-    # plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
+    plot_compare_num_episodes(mode, expert_file, device, keys, num_seeds=num_seeds, num_iterations=num_iterations)
 
 
 if __name__ == '__main__':
