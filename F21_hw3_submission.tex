@@ -170,19 +170,15 @@ $x = (0, 1, 2, 3, 4)$ : \hspace{3.5em} \begin{tcolorbox}[fit,height=1cm, width=5
 \subsection*{2.1.1 Plot Behavior Cloning (8 pt)}
 \begin{tcolorbox}[fit,height=20em, width=40em, blank, borderline={1pt}{1pt},nobeforeafter]
             \begin{center}
-            %YOUR SOLUTION HERE% 
+            \includegraphics[height= 10cm, width=15.5cm]{q2-1-1}
             \end{center}
             \end{tcolorbox}
             
 \subsection*{2.1.2 Plot Behavior Cloning with Varying Expert Episodes (8 pt)}
-
-\begin{tcolorbox}[fit,height=24em, width=40em, blank, borderline={1pt}{1pt},nobeforeafter]
-            \begin{center}
-            %YOUR SOLUTION HERE% 
-
-\end{center}
-\end{tcolorbox}
-
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-1-1}
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-1-10}
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-1-50}
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-1-100}
 
 \subsection*{2.2 DAGGER (20 pt)}
 \subsection*{2.2.1 Plot DAGGER (8 pt)}
@@ -190,20 +186,24 @@ $x = (0, 1, 2, 3, 4)$ : \hspace{3.5em} \begin{tcolorbox}[fit,height=1cm, width=5
             \begin{center}
             \includegraphics[height= 12cm, width=15.5cm]{q2-2-1}
             \end{center}
-            \end{tcolorbox}
+\end{tcolorbox}
             
 \subsection*{2.2.2 Plot DAGGER with Varying Expert Episodes (8 pt)}
-\begin{tcolorbox}[fit,height=25em, width=40em, blank, borderline={1pt}{1pt},nobeforeafter]
-            \begin{center}
-            %YOUR SOLUTION HERE%
-\end{center}
-\end{tcolorbox}
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-2-1}
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-2-10}
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-2-50}
+\includegraphics[height= 10cm, width=15.5cm]{q2-2-2-100}
 
 \subsection*{2.2.3 Compare Behavior Cloning and DAGGER (4 pt)}
 \begin{tcolorbox}[fit,height=24em, width=40em, blank, borderline={1pt}{1pt},nobeforeafter]
             \begin{center}
-            % YOUR SOLUTION HERE%
-
+                Note that BC imitates the expert with almost perfect accuracy, but its policy's training 
+                distribution (expert trajectories) does not match its the testing distribution, which makes it 
+                unable to deal with \textit{bad} states (i.e states that the expert would never encounter since it is playing optimally). 
+                Thus, when beginning a new episode in the evaluation phase and we come across such a state, our model 
+                doesn't have good intuition on how to get out of it. DAGGER solves this problem because the expert is able to guide 
+                our model when things go awry (by correcting mislabeled actions), which means our model learns how to deal with \textit{bad} states 
+                and thus achieves perfect reward on the task.
 \end{center}
 \end{tcolorbox}
 

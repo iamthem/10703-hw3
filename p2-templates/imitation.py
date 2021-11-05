@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from model_pytorch import make_model, ExpertModel
-from utils import state_ndarray_to_tensor, Q2_Dataset 
+from utils import state_ndarray_to_tensor, Q2_Dataset, batch_idx
 
 
 def action_to_one_hot(action, batch):
@@ -58,7 +58,7 @@ def generate_episode(env, policy, device):
 
 class Imitation():
     
-    def __init__(self, env, num_episodes, expert_file, device, mode, batch = 64, expert_T = 200):
+    def __init__(self, env, num_episodes, expert_file, device, mode, batch = 64, expert_T = 200, minibatch = 8):
         self.env = env
         
         # Pytorch Only #
@@ -68,6 +68,7 @@ class Imitation():
         self.expert_T = expert_T
         self.mode = mode
         self.batch = batch
+        self.minibatch = minibatch
         
         self.num_episodes = num_episodes
         
@@ -89,11 +90,14 @@ class Imitation():
 
         start = 0
         for e in range(self.num_episodes):
+
             if e > 0:
                 start = start + episode_lens[e-1] 
 
             end = start + shortest_episode 
+
             assert end - start == shortest_episode
+
             O_s[e, :] = torch.cat(train_states[ start : end ] , 1).reshape(shortest_episode, self.nS)
             O_a[e, :] = torch.cat(train_actions[ start : end ], 0)
 
@@ -136,10 +140,10 @@ class Imitation():
 
     def step(self, state_batch, action_batch):
 
-        # Shuffle steps of trajectory 
-        indices = torch.randperm(state_batch.shape[0])[:self.batch]
+        minibatch, indices = batch_idx(self.minibatch, state_batch.shape[0]) 
+
         y_hat = self.model(state_batch[indices])
-        loss = self.criterion(y_hat.squeeze(0), action_batch[indices].squeeze(0))
+        loss = self.criterion(y_hat.squeeze(0), action_batch[indices].long().squeeze(0))
         
         # Backward prop.
         self.optimizer.zero_grad()
@@ -150,7 +154,7 @@ class Imitation():
 
         # Add to loss, acc 
         self.total_loss += loss
-        self.acc_total += float(torch.sum(action_batch == y_hat.argmax(dim=1)) / action_batch.shape[0])
+        self.acc_total += float(torch.sum(action_batch[indices].long() == y_hat.argmax(dim=1)) / minibatch)
         self.training_iters += 1
 
 
