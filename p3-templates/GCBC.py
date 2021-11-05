@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import randint
 from model_pytorch import ExpertModel, make_model
+import heapq
+import torch
+from itertools import chain
 
 ### 3.1 Build Goal-Conditioned Task
 class FourRooms(gym.Env):
@@ -41,17 +44,24 @@ class FourRooms(gym.Env):
         self.action_space = spaces.Discrete(4)
 
         # you may use self.act_map in search algorithm 
-        self.act_mapI = {}
-        self.act_mapI[(1, 0)] = 0
-        self.act_mapI[(0, 1)] = 1
-        self.act_mapI[(-1, 0)] = 2
-        self.act_mapI[(0, -1)] = 3
+        self.act_map = {}
+        self.act_map[(1, 0)] = 0
+        self.act_map[(0, 1)] = 1
+        self.act_map[(-1, 0)] = 2
+        self.act_map[(0, -1)] = 3
 
-        self.act_map = dict() 
-        self.act_map[0] = np.array([1, 0])
-        self.act_map[1] = np.array([0, 1])
-        self.act_map[2] = np.array([-1, 0])
-        self.act_map[3] = np.array([0, -1])
+        self.act_inverse = {}
+        self.act_inverse[(1,0)] = np.array([-1,0], dtype = np.int_) 
+        self.act_inverse[(0,1)] = np.array([0, -1], dtype = np.int_) 
+        self.act_inverse[(0,-1)] = np.array([0, 1], dtype = np.int_) 
+        self.act_inverse[(-1,0)] = np.array([1, 0], dtype = np.int_) 
+
+    def valid(self, new_state):
+
+        #TODO Currently not wrapping around 
+        return (new_state[0] < self.total_l and new_state[0] > -1) and\
+               (new_state[1] < self.total_l and new_state[1] > -1) and\
+               self.map[new_state[0], new_state[1]]
 
     def step(self, a):
         assert self.action_space.contains(a)
@@ -59,24 +69,15 @@ class FourRooms(gym.Env):
         info = dict() 
         reward = np.float32(0)
 
-        action_vec = self.act_map[a] 
+        action_vec = self.act_set[a] 
         new_state = action_vec + self.s  
-
-        print("State =>", self.s, "Action => ", action_vec, "New State => ", new_state)
-
-        #TODO Currently not wrapping around 
-        if ( (new_state[0] < self.total_l and new_state[0] > -1) and        # Check we are in bounds 
-             (new_state[1] < self.total_l and new_state[1] > -1) and 
-              self.map[new_state[0], new_state[1]]):
+        if self.valid(new_state):
             self.s = new_state 
-        
-        print("State_Prime =>", self.s)
 
         self.t += 1
 
         if (self.s == self.g).all():
             reward = np.float32(1)
-
         done = bool( reward > 0 or
                     self.t > self.T ) 
 
@@ -158,55 +159,158 @@ def test_step(env, l):
         bbox_inches='tight', pad_inches=0.1, dpi=300)
     #plt.show()
 
-# def shortest_path_expert(env):
-# from queue import Queue
-# N = 1000
-# expert_trajs = []
-# expert_actions = []
+def neighbors(s, env):
+    neighbors = []
 
-# # WRITE CODE HERE
-# # END
-# # You should obtain expert_trajs, expert_actions from search algorithm
+    for act_vec in env.act_set:
+        
+        candidate_neighbor = act_vec + np.array(s)
 
-# fig, axes = plt.subplots(5,5, figsize=(10,10))
-# axes = axes.reshape(-1)
-# for idx, ax in enumerate(axes):
-# plot_traj(env, ax, expert_trajs[idx])
+        if env.valid(candidate_neighbor):
+            neighbor = list(candidate_neighbor)
+            assert type(neighbor) == list
+            neighbors.append((neighbor, env.act_inverse[tuple(act_vec)]))
 
-# plt.savefig('p2_expert_trajs.png', 
-#     bbox_inches='tight', pad_inches=0.1, dpi=300)
-# plt.show()
+    return neighbors
 
-# def action_to_one_hot(env, action):
-# action_vec = np.zeros(env.action_space.n)
-# action_vec[action] = 1
-# return action_vec  
+def reduceKey(min_heap, key, neighbor):
+    min_heap_tmp = list(filter(lambda item: item[1] != neighbor, min_heap))
+    heapq.heapify(min_heap_tmp)
+    heapq.heappush(min_heap_tmp, (key, neighbor))
+    return min_heap_tmp
 
-# class GCBC:
+def sssp(g, env):
+    dist_arr = np.full(env.map.flatten().shape, np.Inf, dtype = np.float32).reshape(env.total_l, env.total_l)
+    dist_arr[g[0], g[1]] = 0 
+    distance = lambda state: float(dist_arr[state[0], state[1]])
+    curr = list(g)
+    resultTree = {}
+    min_heap = [ (distance(curr), curr) ]
+    heapq.heapify(min_heap)
 
-# def __init__(self, env, expert_trajs, expert_actions):
-# self.env = env
-# self.expert_trajs = expert_trajs
-# self.expert_actions = expert_actions
-# self.transition_num = sum(map(len, expert_actions))
-# self.model = make_model(input_dim=4, out_dim=4)
-# # state_dim + goal_dim = 4
-# # action_choices = 4
+    while len(min_heap) > 0:
 
-# def reset_model(self):
-# self.model = make_model(input_dim=4, out_dim=4)	
+        dist_curr, curr = heapq.heappop(min_heap)
 
-# def generate_behavior_cloning_data(self):
-# # 3 you will use action_to_one_hot() to convert scalar to vector
-# # state should include goal
-# self._train_states = []
-# self._train_actions = []
+        for neighbor, inverse_action in neighbors(curr, env):
 
-# # WRITE CODE HERE
-# # END
+            if dist_curr + 1 < distance(neighbor):
+                key = dist_curr + 1
+                dist_arr[neighbor[0], neighbor[1]] = key 
 
-# self._train_states = np.array(self._train_states).astype(np.float) # size: (*, 4)
-# self._train_actions = np.array(self._train_actions) # size: (*, 4)
+                if neighbor not in chain(*min_heap):
+                    heapq.heappush(min_heap, (key, neighbor))
+
+                else:
+                    # Note min_heap reassigned to a new heap with the key value of neighbor reduced
+                    min_heap = reduceKey(min_heap, key, neighbor)
+
+                resultTree[tuple(neighbor)] = inverse_action 
+
+    return resultTree 
+
+def generate_expert_episode(env, plot = False):
+    actions = []
+    state = env.reset()
+    g = state[:2]
+    done = False
+    spTree = sssp(state[2:], env)
+    policy = lambda curr_s: spTree[tuple(curr_s)]
+    traj = [state]
+
+    # Follow shortest path Tree
+    while not done:
+        action_vec = policy(state[:2]) 
+        action = env.act_map[tuple(action_vec)]
+        new_state, reward, done, _ = env.step(action)
+        state = new_state
+        actions.append(action)
+        traj.append(state)
+
+    env.close()
+
+    traj = np.array(traj)
+    actions = np.array(actions)
+
+    if plot:
+        ax = plt.subplot()
+        plot_traj(env, ax, traj, g)
+        plt.savefig('../p3-2.png', 
+            bbox_inches='tight', pad_inches=0.1, dpi=300)
+
+    return traj, actions 
+
+def generate_expert_trajectories(env, N):
+    expert_trajs = []
+    expert_actions = []
+
+    for _ in range(N):
+        traj, actions = generate_expert_episode(env)
+        expert_trajs.append(traj)
+        expert_actions.append(actions)
+
+    return expert_trajs, expert_actions
+    # def action_to_one_hot(env, action):
+    # action_vec = np.zeros(env.action_space.n)
+    # action_vec[action] = 1
+    # return action_vec  
+
+class GCBC:
+
+    def __init__(self, env, expert_trajs, expert_actions, device, num_trajs = 5, nS = 4):
+        self.num_episodes = num_trajs
+        self.nS = nS 
+        self.env = env
+        self.device = device
+        self.expert_trajs = expert_trajs
+        self.expert_actions = expert_actions
+        self.transition_num = sum(map(len, expert_actions))
+        self.model = make_model(device, input_dim=4, output_dim=4)
+        #state_dim + goal_dim = 4
+        #action_choices = 4
+
+    def reset_model(self):
+        self.model = make_model(self.device, input_dim=4, output_dim=4)	
+
+    def tensor_trajectory(self, train_states, train_actions, episode_lens):
+        longest_episode = int(np.max(np.array(episode_lens)))
+
+        O_s = torch.zeros((self.num_episodes, longest_episode, self.nS)).float().to(self.device)
+        O_a = torch.zeros((self.num_episodes, longest_episode)).long().to(self.device)
+
+        for e in range(self.num_episodes):
+            curr_traj = train_states[e].astype(np.float32)
+            curr_actions = train_actions[e]
+
+            # Extend trajectory if necessary
+            if curr_traj.shape[0] < longest_episode:
+                padding = longest_episode - curr_traj.shape[0]
+                curr_traj = np.pad(curr_traj, [(0,padding), (0,0)], mode = 'constant', constant_values = np.nan)
+                curr_actions = np.pad(curr_actions, (0,padding), mode = 'constant', constant_values = -1)
+            
+            if curr_actions.shape != longest_episode-1:
+                print(curr_actions)
+
+            O_s[e, :] = torch.from_numpy(curr_traj).float()
+            O_a[e, :] = torch.from_numpy(curr_actions).long()
+
+        return O_s, O_a
+
+
+    def generate_behavior_cloning_data(self):
+        train_states = []
+        train_actions = []
+        episode_lens = []
+
+        for _ in range(self.num_episodes):
+            traj_index = randint(len(self.expert_trajs))
+            states = self.expert_trajs[traj_index]
+            actions = self.expert_actions[traj_index]
+            train_states.append(states)
+            train_actions.append(actions)
+            episode_lens.append(states.shape[0])
+            
+        return self.tensor_trajectory(train_states, train_actions, episode_lens)
 
 # def generate_relabel_data(self):
 # # 4 apply expert relabelling trick

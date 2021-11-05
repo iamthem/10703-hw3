@@ -1,16 +1,4 @@
 import torch
-class ExpertModel(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = torch.nn.Linear(4,24)
-        self.fc2 = torch.nn.Linear(24,48)
-        self.fc3 = torch.nn.Linear(48,2)
-    def forward(self, x):
-        x = torch.tanh(self.fc1(x))
-        x = torch.tanh(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
 
 class FullyConnectedModel(torch.nn.Module):
     def __init__(self, input_dim=4, output_dim=2):
